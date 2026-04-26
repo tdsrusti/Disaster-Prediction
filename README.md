@@ -47,7 +47,7 @@ disaster-project/
 
 ### 1. Clone the repository
 ```bash
-git clone https://github.com/srustitd/disaster-classifier.git
+git clone https://github.com/tdsrusti/Multi-Disaster-CNN-Ensemble.git
 cd disaster-classifier
 ```
 
