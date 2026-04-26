@@ -48,7 +48,7 @@ disaster-project/
 ### 1. Clone the repository
 ```bash
 git clone https://github.com/tdsrusti/Multi-Disaster-CNN-Ensemble.git
-cd disaster-classifier
+cd Multi-Disaster-CNN-Ensemble
 ```
 
 ### 2. Install dependencies
@@ -57,7 +57,7 @@ pip3 install -r requirements.txt
 ```
 
 ### 3. Download model files
-Download the `.keras` model files from **[Google Drive](YOUR_DRIVE_LINK_HERE)** and place them in the project root.
+Due to Copyright reason, it is adviced to build your own model and download the model in .keras file.
 
 ### 4. Run the backend
 ```bash
