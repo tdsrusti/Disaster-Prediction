@@ -1,0 +1,7 @@
+cat > .gitignore << 'EOF'
+*.h5
+*.keras
+__pycache__/
+*.pyc
+.DS_Store
+EOF

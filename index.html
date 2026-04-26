@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Disaster Image Classifier</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #0f1117;
+      color: #e2e8f0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 40px 16px;
+    }
+
+    h1 {
+      font-size: 2rem;
+      font-weight: 700;
+      margin-bottom: 4px;
+      background: linear-gradient(90deg, #f97316, #ef4444);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .subtitle {
+      color: #64748b;
+      font-size: 0.9rem;
+      margin-bottom: 36px;
+    }
+
+    .card {
+      background: #1e2130;
+      border: 1px solid #2d3148;
+      border-radius: 16px;
+      padding: 32px;
+      width: 100%;
+      max-width: 540px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+    }
+
+    /* Drop zone */
+    #drop-zone {
+      border: 2px dashed #3b4263;
+      border-radius: 12px;
+      padding: 40px 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+      margin-bottom: 20px;
+      position: relative;
+    }
+    #drop-zone:hover, #drop-zone.dragover {
+      border-color: #f97316;
+      background: rgba(249,115,22,0.05);
+    }
+    #drop-zone .icon { font-size: 2.5rem; margin-bottom: 10px; }
+    #drop-zone p { color: #64748b; font-size: 0.9rem; }
+    #drop-zone p span { color: #f97316; text-decoration: underline; cursor: pointer; }
+    #file-input { display: none; }
+
+    /* Preview */
+    #preview-wrap { display: none; margin-bottom: 20px; text-align: center; }
+    #preview-img {
+      max-height: 220px;
+      max-width: 100%;
+      border-radius: 10px;
+      border: 2px solid #2d3148;
+      object-fit: contain;
+    }
+    .change-btn {
+      display: inline-block;
+      margin-top: 8px;
+      font-size: 0.78rem;
+      color: #64748b;
+      cursor: pointer;
+      text-decoration: underline;
+    }
+
+    /* Classify button */
+    #classify-btn {
+      width: 100%;
+      padding: 14px;
+      border: none;
+      border-radius: 10px;
+      background: linear-gradient(90deg, #f97316, #ef4444);
+      color: #fff;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.2s, transform 0.1s;
+    }
+    #classify-btn:hover { opacity: 0.9; transform: translateY(-1px); }
+    #classify-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+    /* Spinner */
+    .spinner {
+      display: none;
+      width: 20px; height: 20px;
+      border: 3px solid rgba(255,255,255,0.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      margin: 0 auto;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Results */
+    #result-box { display: none; margin-top: 28px; }
+    .result-label {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #64748b;
+      margin-bottom: 6px;
+    }
+    .predicted-class {
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: #f97316;
+      margin-bottom: 4px;
+      text-transform: capitalize;
+    }
+    .confidence {
+      font-size: 0.9rem;
+      color: #94a3b8;
+      margin-bottom: 20px;
+    }
+
+    /* Probability bars */
+    .bars-title {
+      font-size: 0.8rem;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 12px;
+    }
+    .bar-row { margin-bottom: 10px; }
+    .bar-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.82rem;
+      margin-bottom: 4px;
+      color: #cbd5e1;
+      text-transform: capitalize;
+    }
+    .bar-track {
+      height: 8px;
+      background: #2d3148;
+      border-radius: 99px;
+      overflow: hidden;
+    }
+    .bar-fill {
+      height: 100%;
+      border-radius: 99px;
+      background: linear-gradient(90deg, #f97316, #ef4444);
+      transition: width 0.6s ease;
+    }
+
+    /* Error */
+    #error-box {
+      display: none;
+      margin-top: 20px;
+      padding: 12px 16px;
+      background: rgba(239,68,68,0.1);
+      border: 1px solid rgba(239,68,68,0.3);
+      border-radius: 8px;
+      color: #f87171;
+      font-size: 0.88rem;
+    }
+
+    footer {
+      margin-top: 32px;
+      color: #334155;
+      font-size: 0.78rem;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>🌪 Disaster Classifier</h1>
+  <p class="subtitle">Ensemble · EfficientNetV2 + ConvNeXt + DenseNet201</p>
+
+  <div class="card">
+
+    <!-- Drop zone -->
+    <div id="drop-zone">
+      <div class="icon">📷</div>
+      <p>Drag & drop an image here<br>or <span onclick="document.getElementById('file-input').click()">browse files</span></p>
+      <input type="file" id="file-input" accept="image/*" />
+    </div>
+
+    <!-- Preview -->
+    <div id="preview-wrap">
+      <img id="preview-img" src="" alt="preview" />
+      <div class="change-btn" onclick="resetUI()">✕ Change image</div>
+    </div>
+
+    <!-- Button -->
+    <button id="classify-btn" disabled onclick="classify()">
+      <span id="btn-text">Select an image first</span>
+      <div class="spinner" id="spinner"></div>
+    </button>
+
+    <!-- Error -->
+    <div id="error-box"></div>
+
+    <!-- Results -->
+    <div id="result-box">
+      <div class="result-label">Prediction</div>
+      <div class="predicted-class" id="pred-class">—</div>
+      <div class="confidence" id="pred-conf">Confidence: —</div>
+      <div class="bars-title">All class probabilities</div>
+      <div id="bars"></div>
+    </div>
+  </div>
+
+  <footer>Powered by your trained ensemble · backend at localhost:5001</footer>
+
+  <script>
+    const API = "http://localhost:5001/predict";
+    let selectedFile = null;
+
+    // ── Drop zone logic ───────────────────────────────────────────────────────
+    const dropZone  = document.getElementById("drop-zone");
+    const fileInput = document.getElementById("file-input");
+
+    dropZone.addEventListener("dragover", e => { e.preventDefault(); dropZone.classList.add("dragover"); });
+    dropZone.addEventListener("dragleave", () => dropZone.classList.remove("dragover"));
+    dropZone.addEventListener("drop", e => {
+      e.preventDefault();
+      dropZone.classList.remove("dragover");
+      if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+    });
+    dropZone.addEventListener("click", () => fileInput.click());
+    fileInput.addEventListener("change", () => { if (fileInput.files.length) handleFile(fileInput.files[0]); });
+
+    function handleFile(file) {
+      if (!file.type.startsWith("image/")) { showError("Please select an image file."); return; }
+      selectedFile = file;
+      const reader = new FileReader();
+      reader.onload = e => {
+        document.getElementById("preview-img").src = e.target.result;
+        document.getElementById("preview-wrap").style.display = "block";
+        dropZone.style.display = "none";
+        document.getElementById("classify-btn").disabled = false;
+        document.getElementById("btn-text").textContent = "Classify Image";
+        hideError();
+        document.getElementById("result-box").style.display = "none";
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function resetUI() {
+      selectedFile = null;
+      fileInput.value = "";
+      document.getElementById("preview-wrap").style.display = "none";
+      dropZone.style.display = "block";
+      document.getElementById("classify-btn").disabled = true;
+      document.getElementById("btn-text").textContent = "Select an image first";
+      document.getElementById("result-box").style.display = "none";
+      hideError();
+    }
+
+    // ── Classify ──────────────────────────────────────────────────────────────
+    async function classify() {
+      if (!selectedFile) return;
+
+      setLoading(true);
+      hideError();
+      document.getElementById("result-box").style.display = "none";
+
+      const formData = new FormData();
+      formData.append("file", selectedFile);
+
+      try {
+        const res  = await fetch(API, { method: "POST", body: formData });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Server error");
+        showResults(data);
+      } catch (err) {
+        showError(err.message.includes("Failed to fetch")
+          ? "Cannot reach backend. Make sure app.py is running on port 5000."
+          : err.message);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    function showResults(data) {
+      document.getElementById("pred-class").textContent = data.predicted_class;
+      document.getElementById("pred-conf").textContent =
+        `Confidence: ${(data.confidence * 100).toFixed(1)}%`;
+
+      // Sort probabilities descending
+      const sorted = Object.entries(data.all_probabilities)
+        .sort((a, b) => b[1] - a[1]);
+
+      const barsDiv = document.getElementById("bars");
+      barsDiv.innerHTML = "";
+      sorted.forEach(([cls, prob]) => {
+        const pct = (prob * 100).toFixed(1);
+        barsDiv.innerHTML += `
+          <div class="bar-row">
+            <div class="bar-label"><span>${cls}</span><span>${pct}%</span></div>
+            <div class="bar-track">
+              <div class="bar-fill" style="width:${pct}%"></div>
+            </div>
+          </div>`;
+      });
+
+      document.getElementById("result-box").style.display = "block";
+    }
+
+    function setLoading(on) {
+      const btn     = document.getElementById("classify-btn");
+      const txt     = document.getElementById("btn-text");
+      const spinner = document.getElementById("spinner");
+      btn.disabled        = on;
+      txt.style.display   = on ? "none" : "inline";
+      spinner.style.display = on ? "block" : "none";
+    }
+
+    function showError(msg) {
+      const box = document.getElementById("error-box");
+      box.textContent = "⚠ " + msg;
+      box.style.display = "block";
+    }
+    function hideError() {
+      document.getElementById("error-box").style.display = "none";
+    }
+  </script>
+</body>
+</html>
